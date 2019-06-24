@@ -1,0 +1,40 @@
+{
+  "name": "express-invoice",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "start": "node ./bin/www"
+  },
+  "dependencies": {
+    "@types/bn.js": "^4.11.3",
+    "bech32": "^1.1.2",
+    "bitcoinjs-lib": "^3.3.1",
+    "bn.js": "^4.11.8",
+    "coininfo": "^4.5.0",
+    "cookie-parser": "~1.4.4",
+    "cors": "^2.8.5",
+    "debug": "~2.6.9",
+    "ejs": "~2.6.1",
+    "express": "~4.16.1",
+    "http-errors": "~1.6.3",
+    "lodash": "^4.17.11",
+    "morgan": "~1.9.1",
+    "safe-buffer": "^5.1.1",
+    "secp256k1": "^3.4.0"
+  },
+  "devDependencies": {
+    "nyc": "^13.0.0",
+    "standard": "*",
+    "tap-dot": "*",
+    "tape": "^4.8.0"
+  },
+  "keywords": [
+    "invoice",
+    "payment",
+    "request",
+    "lightning",
+    "network",
+    "bolt11",
+    "bech32"
+  ]
+}
