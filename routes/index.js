@@ -2,9 +2,10 @@ var express = require('express')
 var raidenReq = require('../payreq.js')
 var router = express.Router()
 var http = require('http')
+var request = require('request')
 
-var token_address = ''
-var host = 'http://localhost'
+var token_address = '0x4f50C3bCbAC121D1C1f7E2Eee408e63D0F2fc6cB'
+var host = 'http://127.0.0.1'
 var port = ':5001'
 var base_url = host + port
 /* GET home page. */
@@ -23,7 +24,7 @@ router.get('/invoices', function (req, res) {
     'tags': [
       {
         'tagName': 'payee_node_key',
-        'data': '8ce6Bd1D953F0a0e71F0E97E57C379Ac4b2AA1D3'
+        'data': '19C3a195ae62C4b58c0D7f3519907d564FA084b7'
       },
       {
         'tagName': 'expire_time',
@@ -51,12 +52,15 @@ router.post('/payments', function (req, response) {
   var decoded = raidenReq.decode(invoice)
 
   var price = decoded['satoshis']
-  var payee_node_address = decoded['tag']['payee_node_key']
-  var path = base_url.concat('api/v1/payments/', token_address, '/', payee_node_address)
+  console.log(decoded['tags'][0]['data'])
+  var payee_node_address = '0x' + decoded['tags'][0]['data']
+  var path = base_url.concat('/api/v1/payments/', token_address, '/', payee_node_address)
+  console.log(price)
+  console.log(path)
+  console.log()
 
   var options = {
-    hostname: base_url,
-    path: path,
+    url: base_url + path,
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
@@ -66,35 +70,19 @@ router.post('/payments', function (req, response) {
     }
   }
 
-  var request = http.request(options, function (res) {
-    console.log('Status: ' + res.statusCode)
-    console.log('Headers: ' + JSON.stringify(res.headers))
-    res.setEncoding('utf8')
-    res.on('data', function (body) {
-      if (res.statusCode !== 200) {
-        console.log('Error')
-        response.status(res.statusCode)
-        response.format({
-            'application/json': function () {
-              response.send({
-                success: false,
-                error: 'error message'
-              })
-            }
-          }
-        )
-        response.end()
-      } else {
-        response.format({
-          'application/json': function () {
-            response.send({success: true})
-            response.end()
-          }
-        })
-      }
+  request(options, function(error, response, body){
+    if(error) console.log("error")
+    if(!error && response.statusCode == 200){
+      response.send({
+        'success':true
+      })
+    }
+    response.send({
+      'success':false
     })
+
   })
-  request.end()
+
 })
 
 module.exports = router
