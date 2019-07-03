@@ -8,22 +8,6 @@ const BN = require('bn.js')
 const bitcoinjsAddress = require('bitcoinjs-lib/src/address')
 const cloneDeep = require('lodash/cloneDeep')
 const coininfo = require('coininfo')
-
-// const BITCOINJS_NETWORK_INFO = {
-//   bitcoin: coininfo.bitcoin.main.toBitcoinJS(),
-//   testnet: coininfo.bitcoin.test.toBitcoinJS(),
-//   regtest: coininfo.bitcoin.regtest.toBitcoinJS(),
-//   litecoin: coininfo.litecoin.main.toBitcoinJS(),
-//   litecoin_testnet: coininfo.litecoin.test.toBitcoinJS()
-// }
-// BITCOINJS_NETWORK_INFO.bitcoin.bech32 = 'bc'
-// BITCOINJS_NETWORK_INFO.testnet.bech32 = 'tb'
-// BITCOINJS_NETWORK_INFO.regtest.bech32 = 'bcrt'
-// BITCOINJS_NETWORK_INFO.litecoin.bech32 = 'ltc'
-// BITCOINJS_NETWORK_INFO.litecoin_testnet.bech32 = 'tltc'
-
-// defaults for encode; default timestamp is current time at call
-// const DEFAULTNETWORK = BITCOINJS_NETWORK_INFO[DEFAULTNETWORKSTRING]
 const DEFAULTEXPIRETIME = 3600
 const DEFAULTCLTVEXPIRY = 9
 const DEFAULTDESCRIPTION = ''
@@ -46,13 +30,9 @@ const MILLISATS_PER_NANOBTC = new BN(1e2, 10)
 const PICOBTC_PER_MILLISATS = new BN(10, 10)
 
 const TAGCODES = {
-  payment_hash: 1,
   description: 13,
   payee_node_key: 19,
-  purpose_commit_hash: 23, // commit to longer descriptions (like a website)
   expire_time: 6, // default: 3600 (1 hour)
-  min_final_cltv_expiry: 24, // default: 9
-  fallback_address: 9,
 }
 
 // reverse the keys and values of TAGCODES and insert into TAGNAMES
@@ -75,14 +55,9 @@ const TAGENCODERS = {
 }
 
 const TAGPARSERS = {
-    '1': (words) => wordsToBuffer(words, true).toString('hex'), // 256 bits
   '13': (words) => wordsToBuffer(words, true).toString('utf8'), // string variable length
   '19': (words) => wordsToBuffer(words, true).toString('hex'), // 264 bits
-  '23': (words) => wordsToBuffer(words, true).toString('hex'), // 256 bits
   '6': wordsToIntBE, // default: 3600 (1 hour)
-  '24': wordsToIntBE, // default: 9
-  '9': fallbackAddressParser,
-  '3': routingInfoParser // for extra routing info (private etc.)
 }
 
 const unknownTagName = 'unknownTag'
@@ -366,11 +341,6 @@ function sign (inputPayReqObj, inputPrivateKey) {
   let privateKey = hexToBuffer(inputPrivateKey)
   if (payReqObj.complete && payReqObj.paymentRequest) return payReqObj
 
-  if (privateKey === undefined || privateKey.length !== 32 ||
-    !secp256k1.privateKeyVerify(privateKey)) {
-    throw new Error('privateKey must be a 32 byte Buffer and valid private key')
-  }
-
   let nodePublicKey, tagNodePublicKey
   // If there is a payee_node_key tag convert to buffer
   if (tagsContainItem(payReqObj.tags, TAGNAMES['19'])) {
@@ -389,6 +359,11 @@ function sign (inputPayReqObj, inputPrivateKey) {
   nodePublicKey = tagNodePublicKey || nodePublicKey
 
   let publicKey = secp256k1.publicKeyCreate(privateKey)
+
+  // Check if pubkey matches for private key
+  // if (nodePublicKey && !publicKey.equals(nodePublicKey)) {
+  //   throw new Error('The private key given is not the private key of the node public key given')
+  // }
 
   let words = bech32.decode(payReqObj.wordsTemp, Number.MAX_SAFE_INTEGER).words
 
@@ -419,10 +394,12 @@ function sign (inputPayReqObj, inputPrivateKey) {
 /* MUST but default OK:
   coinType  (default: testnet OK)
   timestamp   (default: current time OK)
+
   MUST:
   signature OR privatekey
   tags[TAGNAMES['1']] (payment hash)
   tags[TAGNAMES['13']] OR tags[TAGNAMES['23']] (description or description for hashing (or description hash))
+
   MUST CHECK:
   IF tags[TAGNAMES['19']] (payee_node_key) THEN MUST CHECK THAT PUBKEY = PUBKEY OF PRIVATEKEY / SIGNATURE
   IF tags[TAGNAMES['9']] (fallback_address) THEN MUST CHECK THAT THE ADDRESS IS A VALID TYPE
@@ -458,7 +435,7 @@ function encode (inputData, addDefaults) {
 
   let code, addressHash, address
 
-  let prefix = 'insta'
+  let prefix = 'rn'
 
   let hrpString
   // calculate the smallest possible integer (removing zeroes) and add the best
@@ -529,14 +506,7 @@ function encode (inputData, addDefaults) {
   // Then convert to 5 bit words with right padding 0 bits.
   let sigWords
   if (canReconstruct) {
-    /* Since BOLT11 does not require a payee_node_key tag in the specs,
-    most parsers will have to recover the pubkey from the signature
-    To ensure the tag data has been provided in the right order etc.
-    we should check that the data we got and the node key given match when
-    reconstructing a payment request from given signature and recoveryID.
-    However, if a privatekey is given, the caller is the privkey owner.
-    Earlier we check if the private key matches the payee node key IF they
-    gave one. */
+
     if (nodePublicKey) {
       let recoveredPubkey = secp256k1.recover(payReqHash, Buffer.from(data.signature, 'hex'), data.recoveryFlag, true)
       if (nodePublicKey && !nodePublicKey.equals(recoveredPubkey)) {
@@ -568,13 +538,14 @@ function encode (inputData, addDefaults) {
 // decode will only have extra comments that aren't covered in encode comments.
 // also if anything is hard to read I'll comment.
 function decode (paymentRequest) {
-  if (typeof paymentRequest !== 'string') throw new Error('Instapay Payment Request must be string')
-  if (paymentRequest.slice(0, 5).toLowerCase() !== 'insta') throw new Error('Not a proper instapay payment request')
+  if (typeof paymentRequest !== 'string') throw new Error('Raiden Payment Request must be string')
+  if (paymentRequest.slice(0, 2).toLowerCase() !== 'rn') throw new Error('Not a proper raiden payment request')
   let decoded = bech32.decode(paymentRequest, Number.MAX_SAFE_INTEGER)
   paymentRequest = paymentRequest.toLowerCase()
   let prefix = decoded.prefix
   let words = decoded.words
 
+  let coinNetwork = 'rn'
   // signature is always 104 words on the end
   // cutting off at the beginning helps since there's no way to tell
   // ahead of time how many tags there are.
@@ -596,16 +567,17 @@ function decode (paymentRequest) {
   // doesn't have anything, there's a good chance the last letter of the
   // coin type got captured by the third group, so just re-regex without
   // the number.
-  let prefixMatches = prefix.match(/^insta(\S+?)(\d*)([a-zA-Z]?)$/)
-  if (prefixMatches && !prefixMatches[2]) prefixMatches = prefix.match(/^insta(\S+)$/)
-  if (!prefixMatches) {
-    throw new Error('Not a proper Instapay payment request')
-  }
+  let prefixMatches = prefix.match(/^rn(\d*)([a-zA-Z]?)$/)
 
-  let value = prefixMatches[2]
+  if (prefixMatches && !prefixMatches[2]) prefixMatches = prefix.match(/^rn(\S+)$/)
+  if (!prefixMatches) {
+    throw new Error('Not a proper Raiden payment request')
+  }
+  let value = prefixMatches[1]
+
   let satoshis, millisatoshis, removeSatoshis
   if (value) {
-    let divisor = prefixMatches[3]
+    let divisor = prefixMatches[2]
     try {
       satoshis = parseInt(hrpToSat(value + divisor, true))
     } catch (e) {
@@ -638,6 +610,11 @@ function decode (paymentRequest) {
 
     tagWords = words.slice(0, tagLength)
     words = words.slice(tagLength)
+
+    tags.push({
+      tagName,
+      data: parser(tagWords, coinNetwork)
+    })
   }
 
   let timeExpireDate, timeExpireDateString
@@ -651,9 +628,6 @@ function decode (paymentRequest) {
   let toSign = Buffer.concat([Buffer.from(prefix, 'utf8'), Buffer.from(convert(wordsNoSig, 5, 8))])
   let payReqHash = sha256(toSign)
   let sigPubkey = secp256k1.recover(payReqHash, sigBuffer, recoveryFlag, true)
-  // if (tagsContainItem(tags, TAGNAMES['19']) && tagsItems(tags, TAGNAMES['19']) !== sigPubkey.toString('hex')) {
-  //   throw new Error('Instapay Payment Request signature pubkey does not match payee pubkey')
-  // }
 
   let finalResult = {
     paymentRequest,
@@ -664,15 +638,15 @@ function decode (paymentRequest) {
     millisatoshis,
     timestamp,
     timestampString,
-    payeeNodeKey: sigPubkey.toString('hex'),
+    payeeNodeKey: tags[0].data,
     signature: sigBuffer.toString('hex'),
     recoveryFlag,
     tags
   }
 
-  if (removeSatoshis) {
-    delete finalResult['satoshis']
-  }
+  // if (removeSatoshis) {
+  //   delete finalResult['satoshis']
+  // }
 
   if (timeExpireDate) {
     finalResult = Object.assign(finalResult, {timeExpireDate, timeExpireDateString})
