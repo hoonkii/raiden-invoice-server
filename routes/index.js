@@ -46,6 +46,10 @@ router.get('/invoices', function (req, res) {
 
 })
 
+router.get('/payments', function(req, response){
+  response.render('raiden-payments.html')
+})
+
 router.post('/payments', function (req, response) {
   console.log(req.param('invoice'))
   var invoice = req.param('invoice')

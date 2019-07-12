@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<link rel="shortcut icon" type="image/png" href="https://lightningdecoder.com/favicon.png">
+<meta name="viewport" content="width=device-width,initial-scale=1,shrink-to-fit=no">
+<meta name="theme-color" content="#000000">
+<link rel="manifest" href="https://lightningdecoder.com/manifest.json">
+<script src="https://code.jquery.com/jquery-3.4.1.js" integrity="sha256-WpOohJOqMqqyKL9FccASB9O0KwACQJpFTUBLTYOVvVU=" crossorigin="anonymous"></script>
+<meta name="google-site-verification" content="d_5aizbppI7vXFrfNDlfXotnj0l1r3u7jQsVyMUMNPA">
+<meta property="og:url" content="https://lightningdecoder.com">
+<meta property="og:site_name" content="Lightning Decoder">
+<meta property="og:title" content="Lightning Decoder | Decode Lightning Network BOLT11 Invoices">
+<meta property="og:type" content="text">
+<meta property="og:image" content="https://camo.githubusercontent.com/5a613bf292cc6585615d9b8c36de106e1d8ae370/68747470733a2f2f692e696d6775722e636f6d2f717057315251712e706e67">
+<meta property="og:determiner" content="auto">
+<meta property="og:description" content="Lightning Decoder is a utility for decoding lightning network payment requests (BOLT11).">
+<title>Raiden Decoder | Decode Raiden Network Invoices</title>
+<link href="/stylesheets/main.4cdd4785.chunk.css" rel="stylesheet">
+</head>
+<body>
+<noscript>
+You need to enable JavaScript to run this app.
+</noscript>
+<div id="root">
+	<div class="app">
+		<div class="options">
+			<div class="options__wrapper">
+				<div class="options__bitcoin">
+					<div class="options__bitcoin-address">
+						33sFHnYAnNXBteG8jH8HoGU5YgywN2A3tv
+					</div>
+					<button class="options__bitcoin-icon-wrapper"><img class="options__bitcoin-icon" src="/stylesheets/bitcoin.36742cb9.svg" alt="Bitcoin"></button>
+				</div>
+				<a href="https://github.com/andrerfneves/lightning-decoder" class="options__github" target="_blank" rel="noopener noreferrer"><img class="options__github-icon" src="/stylesheets/github.ae2c64de.svg" alt="GitHub"></a>
+			</div>
+		</div>
+		<div class="logo">
+			<div class="logo__title">
+				Raiden Invoice Payment
+			</div>
+			<div class="logo__subtitle">
+				Payment with Raiden Network Invoices
+			</div>
+		</div>
+		<div class="app__row">
+			<div class="input">
+				<img alt="Lightning" src="/stylesheets/bolt.6f1ab4b1.png" class="input__asset">
+				<input id="invoice" class="input__text" placeholder="Enter Payment Request" value="">
+			</div>
+			<div class="app__submit">
+				<div id="submitDiv" class="submit">
+					<img alt="Submit" src="/stylesheets/arrow.c97cc055.svg" class="submit__asset">
+					<script>
+						var raidenInvoice = $('#invoice').val()
+						$("#submitDiv").on("click", function(){
+							console.log($('#invoice').val())
+							$.ajax({
+								url: "http://localhost:3000/payments?"+ raidenInvoice,
+								type: "POST",
+								dataType: "json",
+								success : function(data) {
+									// 통신이 성공적으로 이루어졌을 때 이 함수를 타게 된다.
+									window.location.href = 'http://localhost:5001/';
+								},
+								error : function(xhr, status, error) {
+									alert("Raiden Network Error")
+								}
+							})
+						});
+
+					</script>
+				</div>
+				<div class="qrcode">
+					<div class="qrcode__container">
+						<img class="qrcode__img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMgAAADICAYAAACtWK6eAAAABHNCSVQICAgIfAhkiAAAAAlwSFlzAAALEwAACxMBAJqcGAAAAytJREFUeJzt3cFuozAUQNHOqP//yzP7LK4VwLEh5+wpNO2VJR4OPz8AAAAAAAAAAAAAE/05eNy/S69i7Oh1cg/b/j/9nXkVcHcCgSAQCAKBIBAIAoEgEAi/k36uuQXvuPr/5bK5ihUEgkAgCASCQCAIBIJAIAgEgkAgCASCQCAIBMKsZ7He9ek9ye86+6zQ7N9v9+s7a9mzfVYQCAKBIBAIAoEgEAgCgSAQCEfnIJ++Lz37fGfnAKPjZ88pZp9/98//1WXXawWBIBAIAoEgEAgCgSAQCAKBsMt+kLNmzwFGVu/HWP1dyKs//2msIBAEAkEgEAQCQSAQBAJBIBCeMgdZfZ/97vsxztr9+g6zgkAQCASBQBAIBIFAEAgEgUC4yxzk7u+vODsnWb3fYvfPfxorCASBQBAIBIFAEAgEgUAQCITHPsf/YavfD+LvOIkVBIJAIAgEgkAgCASCQCAIBMK37Ad5+n6L1ftNVn9+01hBIAgEgkAgCASCQCAIBIJAIOwyB9l9P8Xq489aff6Rba/PCgJBIBAEAkEgEAQCQSAQBAJh9f3vq3z7nGL18SOz9/NMYwWBIBAIAoEgEAgCgSAQCAKBsMscZPZ9/JHZP9/5z51/GSsIBIFAEAgEgUAQCASBQBAIhG3vP7+4+36Hp//81cdPYwWBIBAIAoEgEAgCgSAQCAKBcJc5yMjq/SCrjx95yt/546wgEAQCQSAQBAJBIBAEAkEgEO7ynvSR1e+vmG31+0lWsx8EdiQQCAKBIBAIAoEgEAgCgbDLHGTk6fsldn//xtfOYawgEAQCQSAQBAJBIBAEAkEgEHaZg9z9Pv3o/Lt/b9ZZ277f4ywrCASBQBAIBIFAEAgEgUAQCIRd5iCr7+OPrH4P+cjqOcPq809jBYEgEAgCgSAQCAKBIBAIAoFwdA7y6ef/V++nePp72Ed2n1O9uuzzsIJAEAgEgUAQCASBQBAIBIFAOHp//LHfg8QjmIPAJwgEgkAgCASCQCAIBIJAIAgEgkAgCASCQCDM+m7eq/cwe7br2bbd824FgSAQCAKBIBAIAoEgEAgCAQAAAAAAAAAAOO8/qSxQfUvWAucAAAAASUVORK5CYII=" alt="QRCode">
+					</div>
+				</div>
+			</div>
+		</div>
+		<div class="app__column">
+		</div>
+	</div>
+</div>
+</body>
+</html>
